@@ -1,8 +1,7 @@
 # AgroConecta Backend API
+las clases:
 
-Backend rehacido para ajustarse al modelo UML solicitado con las clases exactas:
-
-- Usuario (abstracta en dominio)
+- Usuario 
 - Productor
 - Consumidor
 - Producto
