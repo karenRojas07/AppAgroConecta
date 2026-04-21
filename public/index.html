@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgroConecta | Del campo a tu mesa</title>
+  <meta name="description" content="AgroConecta conecta productores y consumidores sin intermediarios." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <header class="hero">
+    <nav class="topbar">
+      <div class="brand">AgroConecta</div>
+      <div class="topbar-links">
+        <a class="cta-link" href="./mapa.html">Ver mapa</a>
+        <a class="cta-link" href="#auth-panel">Ingresar</a>
+      </div>
+    </nav>
+
+    <section class="hero-content">
+      <p class="kicker">PWA para comercio agricola justo</p>
+      <h1>Del campo a tu mesa, sin intermediarios.</h1>
+      <p class="subtitle">
+        Productores publican sus cosechas, consumidores compran directo.
+        Menos barreras, precios mas justos, impacto local real.
+      </p>
+      <div class="hero-tags">
+        <span>Compra directa</span>
+        <span>Recogida en finca</span>
+        <span>Domicilio colaborativo</span>
+      </div>
+    </section>
+  </header>
+
+  <main class="layout" id="auth-panel">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Bienvenido a AgroConecta</h2>
+        <p>Inicia sesion o crea tu cuenta para comenzar.</p>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Autenticacion">
+        <button class="tab active" data-tab="login" role="tab">Login</button>
+        <button class="tab" data-tab="register" role="tab">Registro</button>
+      </div>
+
+      <form id="login-form" class="form active" autocomplete="on">
+        <label>
+          Correo
+          <input type="email" name="correo" placeholder="correo@ejemplo.com" required />
+        </label>
+        <label>
+          Clave
+          <input type="password" name="clave" placeholder="Tu clave" required />
+        </label>
+        <button type="submit" class="btn btn-primary">Iniciar sesion</button>
+      </form>
+
+      <form id="register-form" class="form" autocomplete="on">
+        <div class="grid-2">
+          <label>
+            Nombre completo
+            <input type="text" name="nombre" required />
+          </label>
+          <label>
+            Telefono
+            <input type="text" name="telefono" required />
+          </label>
+        </div>
+
+        <label>
+          Correo
+          <input type="email" name="correo" required />
+        </label>
+
+        <label>
+          Clave
+          <input type="password" name="clave" required minlength="6" />
+        </label>
+
+        <label>
+          Tipo de usuario
+          <select name="rol" id="rol" required>
+            <option value="CONSUMIDOR">Consumidor</option>
+            <option value="PRODUCTOR">Productor</option>
+          </select>
+        </label>
+
+        <section class="geo-box">
+          <label>
+            Como quieres agregar tu ubicacion
+            <select id="location-mode" name="locationMode">
+              <option value="AUTO">Usar mi ubicacion actual</option>
+              <option value="MANUAL">Ingresar coordenadas manualmente</option>
+            </select>
+          </label>
+
+          <div id="geo-auto-fields" class="geo-fields active">
+            <button class="btn btn-secondary" id="get-location-btn" type="button">Usar mi ubicacion actual</button>
+            <p id="location-text" class="geo-text">Aun no se ha capturado tu ubicacion.</p>
+          </div>
+
+          <div id="geo-manual-fields" class="geo-fields">
+            <div class="grid-2">
+              <label>
+                Latitud
+                <input type="number" name="latitudManual" id="latitud-manual" step="any" placeholder="Ej: 5.549161" />
+              </label>
+              <label>
+                Longitud
+                <input type="number" name="longitudManual" id="longitud-manual" step="any" placeholder="Ej: -73.363238" />
+              </label>
+            </div>
+            <p class="geo-text">Ingresa coordenadas validas. Latitud entre -90 y 90, longitud entre -180 y 180.</p>
+          </div>
+
+          <input type="hidden" name="latitud" id="latitud" />
+          <input type="hidden" name="longitud" id="longitud" />
+        </section>
+
+        <div id="consumidor-fields" class="role-fields active">
+          <label>
+            Direccion
+            <input type="text" name="direccion" />
+          </label>
+        </div>
+
+        <div id="productor-fields" class="role-fields">
+          <label>
+            Nombre de finca
+            <input type="text" name="nombreFinca" />
+          </label>
+          <div class="grid-2">
+            <label>
+              Hora inicio recogida
+              <input type="time" id="horario-inicio" step="900" />
+            </label>
+            <label>
+              Hora fin recogida
+              <input type="time" id="horario-fin" step="900" />
+            </label>
+          </div>
+          <p class="geo-text">Selecciona ambas horas desde el selector del navegador.</p>
+          <input type="hidden" name="horarioRecogida" id="horario-recogida" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Crear cuenta</button>
+      </form>
+
+      <section class="status-box" id="status-box" aria-live="polite"></section>
+    </section>
+
+    <section class="side-info">
+      <h3>Una red pensada para territorio rural</h3>
+      <ul>
+        <li>Publica productos frescos en minutos.</li>
+        <li>Gestiona pedidos con estados claros.</li>
+        <li>Resenas para construir confianza comunitaria.</li>
+      </ul>
+      <div class="token-box" id="token-box"></div>
+    </section>
+  </main>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>

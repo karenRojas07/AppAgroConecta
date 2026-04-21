@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi panel | AgroConecta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <header class="hero">
+    <nav class="topbar">
+      <div class="brand">AgroConecta</div>
+      <div class="topbar-links">
+        <a class="cta-link" href="./index.html">Inicio</a>
+        <a class="cta-link" href="./mapa.html">Mapa general</a>
+        <button id="logout-btn" class="btn btn-secondary" type="button">Cerrar sesion</button>
+      </div>
+    </nav>
+
+    <section class="hero-content">
+      <p class="kicker">Panel del usuario</p>
+      <h1 id="welcome-title">Tu espacio en AgroConecta</h1>
+      <p class="subtitle" id="welcome-subtitle">Cargando perfil...</p>
+    </section>
+  </header>
+
+  <main class="layout dashboard-layout">
+    <section class="panel" style="grid-column: 1 / -1;">
+      <div class="panel-header">
+        <h2>Productos disponibles</h2>
+        <p id="products-status">Cargando productos...</p>
+      </div>
+      <div id="products-list" class="card-grid"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Mis pedidos</h2>
+        <p id="orders-status">Cargando pedidos...</p>
+      </div>
+      <div id="orders-list" class="stack-list"></div>
+    </section>
+
+    <section class="panel" id="delivery-panel">
+      <div class="panel-header">
+        <h2>Ubicacion de entrega</h2>
+        <p id="delivery-status">Actualiza tu direccion o coordenadas.</p>
+      </div>
+
+      <form id="delivery-form" class="form active" autocomplete="on">
+        <label>
+          Direccion de entrega
+          <input type="text" name="direccion" id="delivery-address" placeholder="Ej: Calle 12 # 34-56" required />
+        </label>
+
+        <label>
+          Como quieres actualizar la ubicacion
+          <select name="locationMode" id="delivery-mode">
+            <option value="AUTO">Usar mi ubicacion actual</option>
+            <option value="MANUAL">Ingresar coordenadas manualmente</option>
+          </select>
+        </label>
+
+        <section class="geo-box">
+          <div id="delivery-auto-fields" class="geo-fields active">
+            <button class="btn btn-secondary" id="delivery-auto-btn" type="button">Capturar ubicacion actual</button>
+            <p id="delivery-geo-text" class="geo-text">Aun no se ha capturado una ubicacion.</p>
+          </div>
+
+          <div id="delivery-manual-fields" class="geo-fields">
+            <div class="grid-2">
+              <label>
+                Latitud
+                <input type="number" step="any" id="delivery-lat" placeholder="Ej: 5.549161" />
+              </label>
+              <label>
+                Longitud
+                <input type="number" step="any" id="delivery-lng" placeholder="Ej: -73.363238" />
+              </label>
+            </div>
+            <p class="geo-text">Latitud entre -90 y 90. Longitud entre -180 y 180.</p>
+          </div>
+        </section>
+
+        <button class="btn btn-primary" type="submit">Guardar ubicacion de entrega</button>
+      </form>
+    </section>
+
+    <section class="panel" id="pickup-panel">
+      <div class="panel-header">
+        <h2>Punto de recogida</h2>
+        <p id="pickup-status">Consulta tu ubicacion registrada para recogida en finca.</p>
+      </div>
+
+      <div class="stack-list">
+        <article class="order-item">
+          <p id="pickup-farm"><strong>Finca:</strong> -</p>
+          <p id="pickup-schedule"><strong>Horario:</strong> -</p>
+          <button class="btn btn-primary" id="show-pickup-btn" type="button">Ver ubicacion de recogida en mapa</button>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" style="grid-column: 1 / -1;">
+      <div class="panel-header">
+        <h2>Mi ubicacion registrada</h2>
+        <p id="my-map-status">Cargando ubicacion...</p>
+      </div>
+      <div id="my-map" class="map-box"></div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="./panel.js" defer></script>
+</body>
+</html>
