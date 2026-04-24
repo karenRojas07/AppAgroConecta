@@ -1,0 +1,23 @@
+{
+  "name": "AgroConecta",
+  "short_name": "AgroConecta",
+  "description": "Conecta productores y consumidores sin intermediarios. Del campo a tu mesa.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8f5f0",
+  "theme_color": "#2d6a4f",
+  "lang": "es",
+  "categories": ["food", "shopping", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

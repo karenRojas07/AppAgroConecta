@@ -5,6 +5,7 @@ import Loading from "../components/Loading.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { db } from "../utils/db.js";
 
 export default function Productos() {
   const [productos, setProductos] = useState([]);
@@ -16,13 +17,24 @@ export default function Productos() {
   const { isConsumidor } = useAuth();
   const toast = useToast();
 
+  const [offline, setOffline] = useState(false);
+
   useEffect(() => {
     (async () => {
       try {
         const { data } = await api.listProductos();
         setProductos(data || []);
-      } catch (e) {
-        toast.error(e.message);
+        setOffline(false);
+      } catch {
+        // Sin conexión: leer desde el catálogo local en IndexedDB
+        const local = await db.catalogo.getAll();
+        if (local.length > 0) {
+          setProductos(local);
+          setOffline(true);
+          toast.info("Modo offline: mostrando catálogo guardado localmente.");
+        } else {
+          toast.error("Sin conexión y no hay catálogo guardado localmente. Conéctate al menos una vez para ver productos.");
+        }
       } finally {
         setLoading(false);
       }
@@ -68,6 +80,13 @@ export default function Productos() {
           <p className="muted">Explora lo que publican nuestros productores.</p>
         </div>
       </div>
+
+      {offline && (
+        <div className="alert-offline card" style={{ background: "#fff3cd", borderLeft: "4px solid #e6a817", padding: "0.75rem 1rem", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span>⚠️</span>
+          <span>Estás sin conexión. Mostrando el catálogo guardado localmente.</span>
+        </div>
+      )}
 
       <div className="filter-bar card">
         <input

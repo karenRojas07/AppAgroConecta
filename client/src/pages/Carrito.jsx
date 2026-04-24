@@ -2,13 +2,15 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
-import { api } from "../api/client";
+import { useAuth } from "../context/AuthContext.jsx";
 import { formatCOP } from "../utils/format.js";
+import { crearPedidoOfflineAware } from "../utils/syncManager.js";
 
 export default function Carrito() {
   const { items, updateQty, removeItem, clear, total } = useCart();
   const toast = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [tipoEntrega, setTipoEntrega] = useState("RECOGIDA_FINCA");
   const [costoEnvio, setCostoEnvio] = useState(0);
@@ -24,18 +26,27 @@ export default function Carrito() {
     }
     setSubmitting(true);
     try {
-      const detalles = items.map((i) => ({
-        idProducto: i.idProducto,
-        cantidad: i.cantidad,
-      }));
-      const { data } = await api.createPedido({
+      const result = await crearPedidoOfflineAware({
+        idConsumidor: user?.id ?? 0,
         tipoEntrega,
         costoEnvio: envio,
-        detalles,
+        total: totalFinal,
+        items: items.map((i) => ({
+          idProducto: i.idProducto,
+          cantidad: i.cantidad,
+          precioUnitario: i.precio,
+        })),
       });
+
       clear();
-      toast.success("Pedido creado con éxito");
-      navigate(`/pedidos/${data.idPedido}`);
+
+      if (result.local) {
+        toast.info("Sin conexión: tu pedido se guardó localmente y se enviará cuando vuelva la red.");
+        navigate("/pedidos");
+      } else {
+        toast.success("Pedido creado con éxito");
+        navigate(`/pedidos/${result.serverResponse?.data?.idPedido}`);
+      }
     } catch (e) {
       toast.error(e.message || "No se pudo crear el pedido");
     } finally {
