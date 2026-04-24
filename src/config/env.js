@@ -16,7 +16,7 @@ const env = {
   dbName: process.env.DB_NAME || "AgroConectaProyectoFinal",
   dbUser: process.env.DB_USER || "root",
   dbPassword: process.env.DB_PASSWORD || "root",
-  dbSyncAlter: parseBoolean(process.env.DB_SYNC_ALTER, true),
+  dbSyncAlter: parseBoolean(process.env.DB_SYNC_ALTER, false),
   dbSyncForce: parseBoolean(process.env.DB_SYNC_FORCE, false),
   jwtSecret: process.env.JWT_SECRET || "agroconecta_dev_secret",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "12h",

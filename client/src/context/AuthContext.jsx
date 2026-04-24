@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { api, tokenStore } from "../api/client";
+import { guardarUsuarioLocal, limpiarUsuarioLocal, syncCatalogoProductos } from "../utils/syncManager";
 
 const AuthContext = createContext(null);
 
@@ -39,6 +40,9 @@ export function AuthProvider({ children }) {
     const { data } = await api.login({ correo, clave });
     tokenStore.setToken(data.token);
     setUser(data.user);
+    // Persistir sesión y catálogo en IndexedDB para acceso offline
+    await guardarUsuarioLocal(data.user, data.token);
+    syncCatalogoProductos();
     return data.user;
   }, []);
 
@@ -64,6 +68,7 @@ export function AuthProvider({ children }) {
     }
     tokenStore.clearToken();
     setUser(null);
+    await limpiarUsuarioLocal();
   }, []);
 
   const value = useMemo(
