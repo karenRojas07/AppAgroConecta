@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import PWAStatus from "./components/PWAStatus.jsx";
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -35,6 +36,7 @@ export default function App() {
     <div className="app-shell">
       <div className="orb orb-1" />
       <div className="orb orb-2" />
+      <PWAStatus />
       <Navbar />
       <main className="app-main">
         <Routes>

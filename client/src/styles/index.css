@@ -954,4 +954,43 @@ hr {
   flex-wrap: wrap;
 }
 .footer-tag { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+
+/* ===================== PWA status banner ===================== */
+.pwa-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+}
+.pwa-banner.offline {
+  background: var(--warn-soft);
+  color: #5a4310;
+  border-bottom: 1px solid rgba(184, 138, 44, 0.25);
+}
+.pwa-banner.update {
+  background: var(--leaf-soft);
+  color: #0f3d25;
+  border-bottom: 1px solid rgba(31, 122, 77, 0.25);
+}
+.pwa-banner .dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--warn);
+  display: inline-block;
+  animation: pwa-dot 1.2s ease-in-out infinite;
+}
+@keyframes pwa-dot {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
 .footer-links { display: flex; gap: 1.5rem; color: var(--muted); font-size: 0.85rem; }
