@@ -60,7 +60,15 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // ── Assets estáticos ──
+  if (
+    request.destination === "image" ||
+    url.hostname.includes("tile.openstreetmap.org")
+  ) {
+    event.respondWith(staleWhileRevalidate(request));
+    return;
+  }
+
+  // Resto de assets
   event.respondWith(cacheFirstWithNetwork(request));
 });
 
@@ -103,6 +111,23 @@ async function cacheFirstWithNetwork(request) {
     if (shell) return shell;
     return new Response("Sin conexión", { status: 503 });
   }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+
+  const networkFetch = fetch(request)
+    .then((networkResponse) => {
+      if (networkResponse.ok) {
+        cache.put(request, networkResponse.clone());
+      }
+      return networkResponse;
+    })
+    .catch(() => null);
+
+  // Devuelve cache inmediato si existe, mientras actualiza en segundo plano
+  return cached || networkFetch;
 }
 
 function offlineApiResponse() {
