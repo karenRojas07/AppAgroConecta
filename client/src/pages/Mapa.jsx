@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import Loading from "../components/Loading.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import { sensores } from "../utils/perifericos.js";
 
 const iconProductor = new L.Icon({
   iconUrl:
@@ -36,6 +37,42 @@ export default function Mapa() {
   const [filter, setFilter] = useState("TODOS");
   const toast = useToast();
 
+  // ─── Brújula (DeviceOrientationEvent) ────────────────────────────────────
+  const [heading, setHeading] = useState(null);
+  const [brujulaActiva, setBrujulaActiva] = useState(false);
+  const stopSensorRef = useRef(null);
+
+  const activarBrujula = async () => {
+    if (!sensores.isSupported()) {
+      toast.error("Tu dispositivo no expone sensores de orientación.");
+      return;
+    }
+    try {
+      const permiso = await sensores.pedirPermiso();
+      if (permiso !== "granted") {
+        toast.error("Permiso de sensor denegado.");
+        return;
+      }
+      stopSensorRef.current = sensores.escuchar((o) => {
+        // alpha 0–360 indica rotación respecto al norte magnético (más fiable en móvil)
+        if (o.alpha != null) setHeading(o.alpha);
+      });
+      setBrujulaActiva(true);
+      toast.info("Brújula activada. Inclina/gira el teléfono.");
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const desactivarBrujula = () => {
+    stopSensorRef.current?.();
+    stopSensorRef.current = null;
+    setBrujulaActiva(false);
+  };
+
+  useEffect(() => () => stopSensorRef.current?.(), []);
+
+  // ─── Carga de ubicaciones ────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -63,6 +100,11 @@ export default function Mapa() {
   }, [markers]);
 
   if (loading) return <Loading />;
+
+  // La rosa de los vientos rota en sentido inverso al alpha para que la "N"
+  // apunte al norte real. Si el alpha sube, el dispositivo gira en sentido
+  // horario, así que la brújula debe rotar en sentido antihorario.
+  const rotacion = heading != null ? -heading : 0;
 
   return (
     <div className="container map-page">
@@ -94,6 +136,15 @@ export default function Mapa() {
           >
             🛒 Consumidores
           </button>
+          {!brujulaActiva ? (
+            <button className="chip-btn" onClick={activarBrujula}>
+              🧭 Brújula
+            </button>
+          ) : (
+            <button className="chip-btn active" onClick={desactivarBrujula}>
+              🧭 Apagar
+            </button>
+          )}
         </div>
       </div>
 
@@ -131,6 +182,24 @@ export default function Mapa() {
             </Marker>
           ))}
         </MapContainer>
+
+        {brujulaActiva && (
+          <div className="compass" aria-label="Brújula">
+            <div
+              className="compass-rose"
+              style={{ transform: `rotate(${rotacion}deg)` }}
+            >
+              <span className="compass-n">N</span>
+              <span className="compass-e">E</span>
+              <span className="compass-s">S</span>
+              <span className="compass-w">O</span>
+              <div className="compass-arrow" />
+            </div>
+            <div className="compass-readout">
+              {heading != null ? `${Math.round(heading)}°` : "—"}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

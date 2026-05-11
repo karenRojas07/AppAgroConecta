@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import Loading from "../components/Loading.jsx";
@@ -6,8 +6,15 @@ import StarRating from "../components/StarRating.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { estadoColor, estadoLabel, formatCOP, formatDate } from "../utils/format.js";
+import { camera, qr } from "../utils/perifericos.js";
 
 const ESTADOS = ["PENDIENTE", "CONFIRMADO", "EN_PREPARACION", "LISTO", "ENTREGADO", "CANCELADO"];
+
+// Formato del QR que comparte consumidor → productor para confirmar entrega
+const QR_PREFIX = "agroconecta:pedido:";
+const buildQRPayload = (id) => `${QR_PREFIX}${id}`;
+const qrImageUrl = (id) =>
+  `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(buildQRPayload(id))}`;
 
 export default function PedidoDetail() {
   const { id } = useParams();
@@ -24,6 +31,12 @@ export default function PedidoDetail() {
   const [calificacion, setCalificacion] = useState(5);
   const [comentario, setComentario] = useState("");
   const [sendingResena, setSendingResena] = useState(false);
+
+  // Escaneo QR (lado productor)
+  const videoRef = useRef(null);
+  const [scanStream, setScanStream] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const scanningRef = useRef(false);
 
   const load = async () => {
     setLoading(true);
@@ -52,11 +65,12 @@ export default function PedidoDetail() {
     // eslint-disable-next-line
   }, [id]);
 
-  const handleUpdateEstado = async () => {
-    if (!newState || newState === pedido.estado) return;
+  const handleUpdateEstado = async (estadoOverride) => {
+    const target = estadoOverride || newState;
+    if (!target || target === pedido.estado) return;
     setUpdating(true);
     try {
-      await api.cambiarEstadoPedido(pedido.idPedido, newState);
+      await api.cambiarEstadoPedido(pedido.idPedido, target);
       toast.success("Estado actualizado");
       await load();
     } catch (e) {
@@ -66,10 +80,66 @@ export default function PedidoDetail() {
     }
   };
 
+  // ─── Escaneo de QR para confirmar entrega ─────────────────────────────────
+  const iniciarEscaneo = async () => {
+    if (!qr.isSupported()) {
+      toast.error("Tu navegador no soporta BarcodeDetector. Prueba en Chrome/Edge Android o macOS.");
+      return;
+    }
+    try {
+      const s = await camera.open("environment");
+      setScanStream(s);
+      setScanning(true);
+      scanningRef.current = true;
+      requestAnimationFrame(async () => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          await videoRef.current.play();
+          loopEscaneo();
+        }
+      });
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const detenerEscaneo = () => {
+    scanningRef.current = false;
+    setScanning(false);
+    camera.stop(scanStream);
+    setScanStream(null);
+    if (videoRef.current) videoRef.current.srcObject = null;
+  };
+
+  const loopEscaneo = async () => {
+    if (!scanningRef.current || !videoRef.current) return;
+    try {
+      const texto = await qr.detect(videoRef.current);
+      if (texto) {
+        if (texto !== buildQRPayload(pedido.idPedido)) {
+          toast.error(`El QR no corresponde a este pedido (${texto}).`);
+          detenerEscaneo();
+          return;
+        }
+        detenerEscaneo();
+        toast.success("QR verificado. Confirmando entrega…");
+        await handleUpdateEstado("ENTREGADO");
+        return;
+      }
+    } catch {
+      // ignorar fallos puntuales del detector
+    }
+    setTimeout(loopEscaneo, 300);
+  };
+
+  useEffect(() => () => {
+    scanningRef.current = false;
+    camera.stop(scanStream);
+  }, [scanStream]);
+
   const handleResena = async (e) => {
     e.preventDefault();
     if (!pedido) return;
-    // El pedido no trae idProductor directo: lo derivamos del primer producto
     let prodId = null;
     try {
       if (pedido.detalles?.length) {
@@ -106,6 +176,10 @@ export default function PedidoDetail() {
 
   const puedeResenar =
     isConsumidor && pedido.estado === "ENTREGADO" && !resenaExistente;
+
+  // El QR de entrega solo tiene sentido hasta antes de "ENTREGADO"
+  const mostrarQREntrega =
+    pedido.estado !== "ENTREGADO" && pedido.estado !== "CANCELADO";
 
   return (
     <div className="container">
@@ -180,7 +254,7 @@ export default function PedidoDetail() {
               </select>
               <button
                 className="btn btn-primary btn-block"
-                onClick={handleUpdateEstado}
+                onClick={() => handleUpdateEstado()}
                 disabled={updating || newState === pedido.estado}
               >
                 {updating ? "Guardando..." : "Actualizar estado"}
@@ -189,6 +263,54 @@ export default function PedidoDetail() {
           )}
         </aside>
       </div>
+
+      {/* ── QR de entrega ────────────────────────────────────── */}
+      {mostrarQREntrega && (isConsumidor || isProductor) && (
+        <div className="card qr-entrega">
+          {isConsumidor && (
+            <>
+              <h3>📱 Tu código de entrega</h3>
+              <p className="muted">
+                Muéstrale este QR al productor cuando te entregue el pedido para
+                que pueda confirmarlo desde su panel.
+              </p>
+              <div className="qr-img-wrap">
+                <img
+                  src={qrImageUrl(pedido.idPedido)}
+                  alt={`QR del pedido ${pedido.idPedido}`}
+                  width={220}
+                  height={220}
+                />
+              </div>
+              <code className="qr-payload">{buildQRPayload(pedido.idPedido)}</code>
+            </>
+          )}
+
+          {isProductor && (
+            <>
+              <h3>📷 Confirmar entrega por QR</h3>
+              <p className="muted">
+                Escanea el QR que muestra el cliente para marcar el pedido como
+                <b> ENTREGADO</b>.
+              </p>
+              {!scanning ? (
+                <button className="btn btn-primary" onClick={iniciarEscaneo}>
+                  Escanear QR del cliente
+                </button>
+              ) : (
+                <>
+                  <div className="device-video-wrap inline">
+                    <video ref={videoRef} playsInline muted className="device-video" />
+                  </div>
+                  <button className="btn btn-ghost btn-sm" onClick={detenerEscaneo}>
+                    Cancelar escaneo
+                  </button>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {isConsumidor && (
         <div className="card resena-box">

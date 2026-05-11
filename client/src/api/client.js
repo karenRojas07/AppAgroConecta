@@ -5,18 +5,33 @@ const getToken = () => localStorage.getItem("ac_token");
 const setToken = (t) => localStorage.setItem("ac_token", t);
 const clearToken = () => localStorage.removeItem("ac_token");
 
-async function request(method, path, body, { auth = false } = {}) {
+async function request(method, path, body, { auth = false, timeoutMs = 15000 } = {}) {
   const headers = { "Content-Type": "application/json" };
   if (auth) {
     const token = getToken();
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  // AbortController para no dejar requests colgados indefinidamente.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error(`La petición tardó más de ${timeoutMs / 1000}s y fue cancelada.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 
   let payload = null;
   try {

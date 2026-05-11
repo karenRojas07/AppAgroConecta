@@ -50,15 +50,16 @@ app.use(
     limit: env.rateLimitMax,
     standardHeaders: true,
     legacyHeaders: false,
+    // No contar requests preflight ni assets estáticos
+    skip: (req) => req.method === "OPTIONS",
   })
 );
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "http://localhost:4173"],
     credentials: true,
   })
 );
-app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined"));

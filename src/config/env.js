@@ -21,7 +21,7 @@ const env = {
   jwtSecret: process.env.JWT_SECRET || "agroconecta_dev_secret",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "12h",
   rateLimitWindowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
-  rateLimitMax: Number(process.env.RATE_LIMIT_MAX || 200),
+  rateLimitMax: Number(process.env.RATE_LIMIT_MAX || 1000),
 };
 
 module.exports = env;

@@ -68,8 +68,15 @@ export async function procesarSyncQueue() {
 
   for (const op of pendientes) {
     try {
+      // Marcar como en proceso antes de enviar
+      await db.syncQueue.update({ ...op, estado: "en_proceso" });
       await procesarOperacion(op);
-      await db.syncQueue.remove(op.idOperacion);
+      // Marcar como sincronizada (no se borra: queda como historial reciente)
+      await db.syncQueue.update({
+        ...op,
+        estado: "synced",
+        fechaSync: new Date().toISOString(),
+      });
     } catch (err) {
       // Marcar como error para no bloquear otras operaciones
       await db.syncQueue.update({
@@ -80,8 +87,27 @@ export async function procesarSyncQueue() {
     }
   }
 
+  // Limpieza: borrar entradas synced antiguas (más de 1 día)
+  await limpiarSyncedAntiguos();
+
   // Actualizar catálogo después de sincronizar
   await syncCatalogoProductos();
+}
+
+/**
+ * Borra de la syncQueue todas las operaciones marcadas como 'synced' con
+ * más de 24h. Las recientes se conservan para que la UI pueda mostrar
+ * "sincronizado" como confirmación al usuario.
+ */
+async function limpiarSyncedAntiguos() {
+  const todas = await db.syncQueue.getAll();
+  const limite = Date.now() - 24 * 60 * 60 * 1000;
+  for (const op of todas) {
+    if (op.estado === "synced") {
+      const t = op.fechaSync ? new Date(op.fechaSync).getTime() : 0;
+      if (t < limite) await db.syncQueue.remove(op.idOperacion);
+    }
+  }
 }
 
 async function procesarOperacion(op) {

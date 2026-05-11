@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api/client";
 import Loading from "../components/Loading.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { formatCOP } from "../utils/format.js";
+import { camera, blobToDataURL } from "../utils/perifericos.js";
+import { crearProductoOfflineAware } from "../utils/syncManager.js";
 
 const EMPTY_FORM = {
   nombre: "",
@@ -22,6 +24,51 @@ export default function Dashboard() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(false);
+
+  // ─── Cámara para foto del producto ──────────────────────────────────────
+  const videoRef = useRef(null);
+  const [stream, setStream] = useState(null);
+
+  const abrirCamara = async () => {
+    try {
+      const s = await camera.open("environment");
+      setStream(s);
+      // Esperar al siguiente tick para que el <video> ya esté montado
+      requestAnimationFrame(async () => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          await videoRef.current.play();
+        }
+      });
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  const cerrarCamara = () => {
+    camera.stop(stream);
+    setStream(null);
+    if (videoRef.current) videoRef.current.srcObject = null;
+  };
+
+  const tomarFoto = async () => {
+    if (!videoRef.current) return;
+    try {
+      const blob = await camera.snapshot(videoRef.current, 0.75);
+      // Guardamos la foto como Data URL (string) para mandarla al backend
+      // y poder almacenarla offline en IndexedDB sin perder el binario.
+      const dataUrl = await blobToDataURL(blob);
+      setForm((f) => ({ ...f, foto: dataUrl }));
+      cerrarCamara();
+      toast.success(`Foto capturada (${Math.round(blob.size / 1024)} KB)`);
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+
+  useEffect(() => () => camera.stop(stream), [stream]);
+
+  // ─── Carga de productos ──────────────────────────────────────────────────
 
   const load = async () => {
     setLoading(true);
@@ -84,12 +131,23 @@ export default function Dashboard() {
         await api.updateProducto(editing.idProducto, payload);
         toast.success("Producto actualizado");
       } else {
-        await api.createProducto(payload);
-        toast.success("Producto publicado");
+        // Usa el flujo offline-aware: si hay red, va al servidor;
+        // si no, lo guarda en IndexedDB y encola para sincronizar.
+        const res = await crearProductoOfflineAware({
+          ...payload,
+          idProductor: user.idUsuario,
+          fotoLocal: form.foto,
+        });
+        if (res.local) {
+          toast.info("Sin conexión: el producto se sincronizará al volver la red.");
+        } else {
+          toast.success("Producto publicado");
+        }
       }
       setShowForm(false);
       setEditing(null);
       setForm(EMPTY_FORM);
+      cerrarCamara();
       await load();
     } catch (err) {
       toast.error(err.message);
@@ -146,6 +204,7 @@ export default function Dashboard() {
               onClick={() => {
                 setShowForm(false);
                 setEditing(null);
+                cerrarCamara();
               }}
             >
               ×
@@ -201,15 +260,65 @@ export default function Dashboard() {
                 />
               </label>
             </div>
-            <label className="field">
-              <span>Foto (URL, opcional)</span>
+
+            <div className="field">
+              <span>Foto del producto</span>
+              <div className="foto-tools">
+                {!stream ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={abrirCamara}
+                  >
+                    📷 Usar cámara
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={tomarFoto}
+                    >
+                      Capturar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={cerrarCamara}
+                    >
+                      Cancelar
+                    </button>
+                  </>
+                )}
+                {form.foto && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setForm({ ...form, foto: "" })}
+                  >
+                    Quitar foto
+                  </button>
+                )}
+              </div>
+              {stream && (
+                <div className="device-video-wrap inline">
+                  <video ref={videoRef} playsInline muted className="device-video" />
+                </div>
+              )}
+              {form.foto && !stream && (
+                <div className="device-snapshot inline">
+                  <img src={form.foto} alt="vista previa" />
+                </div>
+              )}
               <input
                 type="url"
-                value={form.foto}
+                value={form.foto?.startsWith?.("data:") ? "" : form.foto}
                 onChange={(e) => setForm({ ...form, foto: e.target.value })}
-                placeholder="https://..."
+                placeholder="…o pega una URL https://"
+                className="mt-sm"
               />
-            </label>
+            </div>
+
             <button className="btn btn-primary btn-block" disabled={saving}>
               {saving ? "Guardando..." : editing ? "Guardar cambios" : "Publicar"}
             </button>

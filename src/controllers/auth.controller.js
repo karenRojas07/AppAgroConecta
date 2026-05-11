@@ -26,7 +26,7 @@ const registerProductor = catchAsync(async (req, res, next) => {
 
   const transaction = await sequelize.transaction();
   try {
-    const passwordHash = await bcrypt.hash(clave, 10);
+    const passwordHash = await bcrypt.hash(clave, 8);
     const user = await Usuario.create(
       {
         rol: "PRODUCTOR",
@@ -72,7 +72,7 @@ const registerConsumidor = catchAsync(async (req, res, next) => {
 
   const transaction = await sequelize.transaction();
   try {
-    const passwordHash = await bcrypt.hash(clave, 10);
+    const passwordHash = await bcrypt.hash(clave, 8);
     const user = await Usuario.create(
       {
         rol: "CONSUMIDOR",

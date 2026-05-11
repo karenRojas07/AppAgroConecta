@@ -16,6 +16,7 @@ import Perfil from "./pages/Perfil.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Resenas from "./pages/Resenas.jsx";
 import Mapa from "./pages/Mapa.jsx";
+import Dispositivo from "./pages/Dispositivo.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/productores" element={<Productores />} />
           <Route path="/productores/:id" element={<ProductorDetail />} />
           <Route path="/mapa" element={<Mapa />} />
+          <Route path="/dispositivo" element={<Dispositivo />} />
 
           <Route
             path="/carrito"
