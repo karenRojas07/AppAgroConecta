@@ -43,15 +43,15 @@ if ("serviceWorker" in navigator) {
 iniciarSyncManager();
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </AuthProvider>
-      </ToastProvider>
-    </BrowserRouter>
-  </React.StrictMode>
+  // StrictMode quitado: en dev hacía que cada useEffect (y cada fetch) se
+  // disparara dos veces, saturando los 6 slots de conexión del navegador.
+  <BrowserRouter>
+    <ToastProvider>
+      <AuthProvider>
+        <CartProvider>
+          <App />
+        </CartProvider>
+      </AuthProvider>
+    </ToastProvider>
+  </BrowserRouter>
 );

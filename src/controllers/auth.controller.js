@@ -121,19 +121,16 @@ const login = catchAsync(async (req, res, next) => {
   }
 
   const token = signToken({ idUsuario: user.idUsuario, rol: user.rol });
-  await user.update({ tokenSesion: token, ultimoAcceso: new Date() });
+  // Actualizar token sin esperar a que termine: si el cliente cancela, el
+  // UPDATE puede colgarse y arrastrar el findByPk siguiente. Lo importante
+  // para el cliente es recibir el token cuanto antes.
+  user.update({ tokenSesion: token, ultimoAcceso: new Date() }).catch(() => {});
 
-  const perfil =
-    user.rol === "PRODUCTOR"
-      ? await Productor.findByPk(user.idUsuario)
-      : await Consumidor.findByPk(user.idUsuario);
-
+  // No cargamos el perfil aquí — el cliente lo pide después con
+  // GET /api/v1/productores/:id o /consumidores/:id si lo necesita.
   return ok(
     res,
-    {
-      token,
-      user: toSafeUser(user, perfil),
-    },
+    { token, user: toSafeUser(user, null) },
     "Inicio de sesion exitoso"
   );
 });
