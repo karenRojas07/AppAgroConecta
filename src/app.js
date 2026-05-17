@@ -9,7 +9,16 @@ const apiRoutes = require("./routes");
 const notFound = require("./middlewares/notFound");
 const errorHandler = require("./middlewares/errorHandler");
 
+
 const app = express();
+
+// CORS debe ir antes de cualquier otro middleware
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(
   helmet({
@@ -52,7 +61,10 @@ app.use(
     legacyHeaders: false,
   })
 );
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan(env.nodeEnv === "development" ? "dev" : "combined"));

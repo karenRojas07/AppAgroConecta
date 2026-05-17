@@ -40,6 +40,7 @@ export default function Mapa() {
     (async () => {
       try {
         const { data } = await api.listUbicaciones();
+        console.log("[MAPA] Respuesta de ubicaciones:", data);
         setData(data);
       } catch (e) {
         toast.error(e.message);

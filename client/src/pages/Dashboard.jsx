@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
+import { crearProductoOfflineAware } from "../utils/syncManager";
 import Loading from "../components/Loading.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
@@ -84,8 +85,8 @@ export default function Dashboard() {
         await api.updateProducto(editing.idProducto, payload);
         toast.success("Producto actualizado");
       } else {
-        await api.createProducto(payload);
-        toast.success("Producto publicado");
+        const res = await crearProductoOfflineAware(payload);
+        toast.success(res.local ? "Producto guardado offline y se publicará al volver la conexión" : "Producto publicado");
       }
       setShowForm(false);
       setEditing(null);
