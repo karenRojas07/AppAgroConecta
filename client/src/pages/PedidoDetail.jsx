@@ -15,6 +15,7 @@ export default function PedidoDetail() {
   const toast = useToast();
 
   const [pedido, setPedido] = useState(null);
+  const [detallesConNombre, setDetallesConNombre] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [newState, setNewState] = useState("");
@@ -31,6 +32,23 @@ export default function PedidoDetail() {
       const { data } = await api.getPedido(id);
       setPedido(data);
       setNewState(data.estado);
+
+      // Obtener nombres de productos para cada detalle
+      if (data.detalles?.length) {
+        const detalles = await Promise.all(
+          data.detalles.map(async (d) => {
+            try {
+              const { data: prod } = await api.getProducto(d.idProducto);
+              return { ...d, nombreProducto: prod.nombre };
+            } catch {
+              return { ...d, nombreProducto: `Producto #${d.idProducto}` };
+            }
+          })
+        );
+        setDetallesConNombre(detalles);
+      } else {
+        setDetallesConNombre([]);
+      }
 
       // resena asociada
       try {
@@ -135,10 +153,10 @@ export default function PedidoDetail() {
               </tr>
             </thead>
             <tbody>
-              {pedido.detalles?.map((d) => (
+              {detallesConNombre.map((d) => (
                 <tr key={d.idDetallePedido || d.idProducto}>
                   <td>
-                    <Link to={`/productos/${d.idProducto}`}>#{d.idProducto}</Link>
+                    <Link to={`/productos/${d.idProducto}`}>{d.nombreProducto}</Link>
                   </td>
                   <td>{d.cantidad}</td>
                   <td>{formatCOP(d.precioUnitario)}</td>

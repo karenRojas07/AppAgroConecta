@@ -12,11 +12,18 @@ async function request(method, path, body, { auth = false } = {}) {
     if (token) headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (err) {
+    console.error("Error de red/fetch:", err);
+    throw new Error("No se pudo conectar con el servidor. Detalle en consola.");
+  }
 
   let payload = null;
   try {

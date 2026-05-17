@@ -14,8 +14,10 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   const refresh = useCallback(async () => {
+    setAuthError(null);
     if (!tokenStore.getToken()) {
       setUser(null);
       setLoading(false);
@@ -24,9 +26,10 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await api.me();
       setUser(data);
-    } catch {
+    } catch (err) {
       tokenStore.clearToken();
       setUser(null);
+      setAuthError("No se pudo conectar con el servidor de autenticación. Por favor, revisa tu conexión o inténtalo más tarde.");
     } finally {
       setLoading(false);
     }
@@ -75,6 +78,7 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       loading,
+      authError,
       isAuth: !!user,
       isProductor: user?.rol === "PRODUCTOR",
       isConsumidor: user?.rol === "CONSUMIDOR",
@@ -85,7 +89,7 @@ export function AuthProvider({ children }) {
       refresh,
       setUser,
     }),
-    [user, loading, login, registerProductor, registerConsumidor, logout, refresh]
+    [user, loading, authError, login, registerProductor, registerConsumidor, logout, refresh]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

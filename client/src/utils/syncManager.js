@@ -29,9 +29,11 @@ export async function syncCatalogoProductos() {
  * Guarda el usuario autenticado en usuarioLocal para acceso offline.
  */
 export async function guardarUsuarioLocal(user, token) {
-  if (!user) return;
+  if (!user || !(user.idUsuario || user.id)) return; // Acepta ambos por compatibilidad
+  const idUsuario = user.idUsuario ?? user.id;
+  if (!idUsuario) return;
   await db.usuario.save({
-    idUsuario: user.id,
+    idUsuario,
     rol: user.rol,
     nombre: user.nombre,
     correo: user.correo,
@@ -68,9 +70,12 @@ export async function procesarSyncQueue() {
 
   for (const op of pendientes) {
     try {
+      console.log("[SYNC] Procesando operación:", op);
       await procesarOperacion(op);
       await db.syncQueue.remove(op.idOperacion);
+      console.log("[SYNC] Operación completada y eliminada de la cola:", op.idOperacion);
     } catch (err) {
+      console.error("[SYNC] Error al procesar operación:", op, err);
       // Marcar como error para no bloquear otras operaciones
       await db.syncQueue.update({
         ...op,
@@ -103,20 +108,32 @@ async function sincronizarPedido(op) {
   if (op.accion !== "crear") return;
 
   const pedido = await db.pedidosPendientes.getById(op.idReferencia);
-  if (!pedido || pedido.sincronizado) return;
+  if (!pedido || pedido.sincronizado) {
+    console.warn("[SYNC] Pedido no encontrado o ya sincronizado:", op.idReferencia);
+    return;
+  }
 
   const detalles = await db.detallesPedido.getByPedido(op.idReferencia);
 
-  await api.createPedido({
+  console.log("[SYNC] Enviando pedido al backend:", {
     tipoEntrega: pedido.tipoEntrega,
     costoEnvio: pedido.costoEnvio,
-    items: detalles.map((d) => ({
+    detalles: detalles.map((d) => ({
       idProducto: d.idProducto,
       cantidad: d.cantidad,
-      precioUnitario: d.precioUnitario,
     })),
   });
 
+  const res = await api.createPedido({
+    tipoEntrega: pedido.tipoEntrega,
+    costoEnvio: pedido.costoEnvio,
+    detalles: detalles.map((d) => ({
+      idProducto: d.idProducto,
+      cantidad: d.cantidad,
+    })),
+  });
+
+  console.log("[SYNC] Pedido sincronizado con backend. Respuesta:", res);
   await db.pedidosPendientes.marcarSincronizado(pedido.idLocalPedido);
 }
 
@@ -149,7 +166,13 @@ async function sincronizarProducto(op) {
  */
 export async function crearPedidoOfflineAware(pedidoData) {
   if (navigator.onLine) {
-    const res = await api.createPedido(pedidoData);
+    // Transformar items a detalles para cumplir con el backend
+    const { items = [], ...rest } = pedidoData;
+    const detalles = items.map((i) => ({
+      idProducto: i.idProducto,
+      cantidad: i.cantidad,
+    }));
+    const res = await api.createPedido({ ...rest, detalles });
     return { local: false, serverResponse: res };
   }
 
